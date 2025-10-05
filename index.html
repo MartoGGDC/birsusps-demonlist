@@ -69,7 +69,7 @@
                   : h.name;
                 return `• ${nameHTML} — ${h.percent}${h.verified ? " (Verified)" : ""}`;
               }).join("<br>")
-            : "<span class='text-zinc-500'>No record holders yet.</span>";
+            : "<span class='text-zinc-500 dark:text-zinc-400'>No record holders yet.</span>";
 
           const section = document.createElement("section");
           // Light/Dark mode compatible classes
@@ -96,10 +96,10 @@
               <div class="flex-1">
                 <div class="flex items-center justify-between">
                   <h2 id="level-${level.rank}" class="text-2xl font-bold text-black dark:text-zinc-100">#${level.rank} — ${level.title}</h2>
-                  <span class="text-sm text-zinc-600 dark:text-zinc-400">by ${level.creator}</span>
+                  <span class="text-sm text-zinc-700 dark:text-zinc-400">by ${level.creator}</span>
                 </div>
                 <div class="mt-2 border-t border-zinc-300 dark:border-zinc-700 pt-2 record-holders" style="display: none;">
-                  <p class="text-sm text-black dark:text-zinc-400 mb-1">Record Holders:</p>
+                  <p class="text-sm text-black dark:text-zinc-100 mb-1">Record Holders:</p>
                   <ul class="text-sm space-y-1 text-black dark:text-zinc-100">${holdersHTML}</ul>
                 </div>
               </div>
