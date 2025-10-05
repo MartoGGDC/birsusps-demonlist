@@ -1,9 +1,9 @@
 [
   {
     "rank": 1,
-    "title": "NilScapes",
+    "title": "Nilscapes",
     "creator": "Nil",
-    "youtube": "dQw4w9WgXcQ",
+    "youtube": "mTd3XmhyiPk",
     "recordHolders": [
       { "name": "Nil", "percent": "100%", "verified": true }
     ]
@@ -12,7 +12,7 @@
     "rank": 2,
     "title": "Zig Zag",
     "creator": "Anna",
-    "youtube": "9bZkp7q19f0",
+    "youtube": "wJVrcc1NC-Y",
     "recordHolders": [
       { "name": "Anna", "percent": "100%", "verified": true },
       { "name": "MartoGG", "percent": "100%" }
@@ -22,7 +22,7 @@
     "rank": 3,
     "title": "Astral Divine",
     "creator": "ghjvbn",
-    "youtube": "3JZ_D3ELwOQ",
+    "youtube": "IyO0vSqMTwk",
     "recordHolders": [
       { "name": "MartoGG", "percent": "100%", "verified": true }
     ]
@@ -40,35 +40,35 @@
     "creator": "",
     "youtube": "",
     "recordHolders": []
-  }
+  },
   {
     "rank": 6,
     "title": "",
     "creator": "",
     "youtube": "",
     "recordHolders": []
-  }
+  },
   {
     "rank": 7,
     "title": "",
     "creator": "",
     "youtube": "",
     "recordHolders": []
-  }
+  },
   {
     "rank": 8,
     "title": "",
     "creator": "",
     "youtube": "",
     "recordHolders": []
-  }
+  },
   {
     "rank": 9,
     "title": "",
     "creator": "",
     "youtube": "",
     "recordHolders": []
-  }
+  },
   {
     "rank": 10,
     "title": "",
@@ -77,4 +77,3 @@
     "recordHolders": []
   }
 ]
-
