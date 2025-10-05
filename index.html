@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BIRSUSPS DEMONSLIST</title>
+  <title>BIRSUSPS DEMONLIST</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -15,7 +15,7 @@
   </header>
 
   <main id="list" class="max-w-2xl mx-auto px-4 pb-16 space-y-6">
-    <p class="text-center text-zinc-500">Loading levels...</p>
+    <p class="text-center text-zinc-500 animate-spin">⏳ Loading levels...</p>
   </main>
 
   <footer class="text-center text-zinc-600 text-xs pb-6">
@@ -31,15 +31,21 @@
         container.innerHTML = "";
 
         levels.forEach(level => {
-          const holdersHTML = level.recordHolders.map(
-            h => `<li>• ${h.name} — ${h.percent}${h.verified ? " (Verified)" : ""}</li>`
-          ).join("");
+          // Sort record holders so verified come first
+          level.recordHolders.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
+
+          const holdersHTML = level.recordHolders.length
+            ? level.recordHolders.map(
+                h => `<li>• ${h.name} — ${h.percent}${h.verified ? " (Verified)" : ""}</li>`
+              ).join("")
+            : "<li class='text-zinc-500'>No record holders yet.</li>";
 
           const section = document.createElement("section");
-          section.className = "bg-zinc-800 p-4 rounded-2xl shadow-lg";
+          section.className = "bg-zinc-800 p-4 rounded-2xl shadow-lg hover:bg-zinc-700 transition-colors";
+          section.setAttribute("aria-labelledby", `level-${level.rank}`);
           section.innerHTML = `
             <div class="flex items-center justify-between">
-              <h2 class="text-2xl font-bold">#${level.rank} — ${level.title}</h2>
+              <h2 id="level-${level.rank}" class="text-2xl font-bold">#${level.rank} — ${level.title}</h2>
               <span class="text-sm text-zinc-400">by ${level.creator}</span>
             </div>
             <div class="mt-2 border-t border-zinc-700 pt-2">
@@ -59,4 +65,3 @@
   </script>
 </body>
 </html>
-
