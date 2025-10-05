@@ -76,11 +76,24 @@
             opacity-0 translate-y-4 cursor-pointer
           `;
           section.setAttribute("aria-labelledby", `level-${level.rank}`);
+
+          // YouTube thumbnail image linking to video
+          const youtubeThumbnail = level.youtube
+            ? `<div class="mt-4">
+                 <a href="https://www.youtube.com/watch?v=${level.youtube}" target="_blank" rel="noopener noreferrer">
+                   <img src="https://img.youtube.com/vi/${level.youtube}/hqdefault.jpg" 
+                        alt="${level.title} YouTube Video Thumbnail" 
+                        class="w-full rounded-lg hover:scale-105 transition-transform"/>
+                 </a>
+               </div>`
+            : "";
+
           section.innerHTML = `
             <div class="flex items-center justify-between">
               <h2 id="level-${level.rank}" class="text-2xl font-bold">#${level.rank} — ${level.title}</h2>
               <span class="text-sm text-zinc-400">by ${level.creator}</span>
             </div>
+            ${youtubeThumbnail}
             <div class="mt-2 border-t border-zinc-700 pt-2 record-holders" style="display: block;">
               <p class="text-sm text-zinc-400 mb-1">Record Holders:</p>
               <ul class="text-sm space-y-1">${holdersHTML}</ul>
@@ -95,9 +108,8 @@
             section.classList.add("opacity-100", "translate-y-0");
           }, index * 150);
 
-          // Make record holders collapsible
+          // Collapsible record holders
           section.addEventListener('click', (e) => {
-            // Only toggle when clicking outside links (if any in future)
             if (!e.target.closest('a')) {
               const holdersDiv = section.querySelector('.record-holders');
               holdersDiv.style.display = holdersDiv.style.display === 'none' ? 'block' : 'none';
