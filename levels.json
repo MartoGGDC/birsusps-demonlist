@@ -4,9 +4,6 @@
     "title": "Slaughterhouse",
     "creator": "IcedCave",
     "recordHolders": [
-      { "name": "SpaceUK", "percent": "100%", "verified": true },
-      { "name": "Trick", "percent": "100%" },
-      { "name": "Zoink", "percent": "100%" }
     ]
   },
   {
@@ -28,3 +25,4 @@
     ]
   }
 ]
+
