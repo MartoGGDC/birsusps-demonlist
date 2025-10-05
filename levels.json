@@ -1,53 +1,80 @@
 [
   {
     "rank": 1,
-    "title": "Slaughterhouse",
-    "creator": "IcedCave",
+    "title": "NilScapes",
+    "creator": "Nil",
     "youtube": "dQw4w9WgXcQ",
     "recordHolders": [
-      { "name": "SpaceUK", "percent": "100%", "verified": true },
-      { "name": "Trick", "percent": "100%" },
-      { "name": "Zoink", "percent": "100%" }
+      { "name": "Nil", "percent": "100%", "verified": true }
     ]
   },
   {
     "rank": 2,
-    "title": "Acheron",
-    "creator": "GrenadeOfTacos",
+    "title": "Zig Zag",
+    "creator": "Anna",
     "youtube": "9bZkp7q19f0",
     "recordHolders": [
-      { "name": "Zoink", "percent": "100%" },
-      { "name": "Trusta", "percent": "100%" }
+      { "name": "Anna", "percent": "100%", "verified": true },
+      { "name": "MartoGG", "percent": "100%" }
     ]
   },
   {
     "rank": 3,
-    "title": "Shukketsu",
-    "creator": "Wooshi999",
+    "title": "Astral Divine",
+    "creator": "ghjvbn",
     "youtube": "3JZ_D3ELwOQ",
     "recordHolders": [
-      { "name": "Nswish", "percent": "100%" },
-      { "name": "Sunix", "percent": "100%" }
+      { "name": "MartoGG", "percent": "100%", "verified": true }
     ]
   },
   {
     "rank": 4,
-    "title": "Infernal Abyss",
-    "creator": "LavaMaster",
-    "youtube": "fJ9rUzIMcZQ",
-    "recordHolders": [
-      { "name": "Magma", "percent": "98%", "verified": true },
-      { "name": "Blaze", "percent": "97%" }
-    ]
+    "title": "",
+    "creator": "",
+    "youtube": "",
+    "recordHolders": []
   },
   {
     "rank": 5,
-    "title": "Celestial Rush",
-    "creator": "StarGazer",
-    "youtube": "eY52Zsg-KVI",
-    "recordHolders": [
-      { "name": "Nova", "percent": "100%", "verified": true },
-      { "name": "Comet", "percent": "99%" }
-    ]
+    "title": "",
+    "creator": "",
+    "youtube": "",
+    "recordHolders": []
+  }
+  {
+    "rank": 6,
+    "title": "",
+    "creator": "",
+    "youtube": "",
+    "recordHolders": []
+  }
+  {
+    "rank": 7,
+    "title": "",
+    "creator": "",
+    "youtube": "",
+    "recordHolders": []
+  }
+  {
+    "rank": 8,
+    "title": "",
+    "creator": "",
+    "youtube": "",
+    "recordHolders": []
+  }
+  {
+    "rank": 9,
+    "title": "",
+    "creator": "",
+    "youtube": "",
+    "recordHolders": []
+  }
+  {
+    "rank": 10,
+    "title": "",
+    "creator": "",
+    "youtube": "",
+    "recordHolders": []
   }
 ]
+
