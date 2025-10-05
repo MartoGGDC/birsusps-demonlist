@@ -63,10 +63,13 @@
           level.recordHolders.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
 
           const holdersHTML = level.recordHolders.length
-            ? level.recordHolders.map(
-                h => `<li>• ${h.name} — ${h.percent}${h.verified ? " (Verified)" : ""}</li>`
-              ).join("")
-            : "<li class='text-zinc-500'>No record holders yet.</li>";
+            ? level.recordHolders.map(h => {
+                const nameHTML = h.verified
+                  ? `<span class="text-purple-400 drop-shadow-[0_0_2px_purple]">${h.name}</span>`
+                  : h.name;
+                return `• ${nameHTML} — ${h.percent}${h.verified ? " (Verified)" : ""}`;
+              }).join("<br>")
+            : "<span class='text-zinc-500'>No record holders yet.</span>";
 
           const section = document.createElement("section");
           section.className = `
@@ -77,7 +80,7 @@
           `;
           section.setAttribute("aria-labelledby", `level-${level.rank}`);
 
-          // YouTube thumbnail smaller and beside the info
+          // Thumbnail smaller and beside the info
           const youtubeThumbnail = level.youtube
             ? `<a href="https://www.youtube.com/watch?v=${level.youtube}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0 mr-4">
                  <img src="https://img.youtube.com/vi/${level.youtube}/hqdefault.jpg" 
@@ -94,7 +97,7 @@
                   <h2 id="level-${level.rank}" class="text-2xl font-bold">#${level.rank} — ${level.title}</h2>
                   <span class="text-sm text-zinc-400">by ${level.creator}</span>
                 </div>
-                <div class="mt-2 border-t border-zinc-700 pt-2 record-holders" style="display: block;">
+                <div class="mt-2 border-t border-zinc-700 pt-2 record-holders" style="display: none;">
                   <p class="text-sm text-zinc-400 mb-1">Record Holders:</p>
                   <ul class="text-sm space-y-1">${holdersHTML}</ul>
                 </div>
