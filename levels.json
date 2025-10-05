@@ -1,0 +1,30 @@
+[
+  {
+    "rank": 1,
+    "title": "Slaughterhouse",
+    "creator": "IcedCave",
+    "recordHolders": [
+      { "name": "SpaceUK", "percent": "100%", "verified": true },
+      { "name": "Trick", "percent": "100%" },
+      { "name": "Zoink", "percent": "100%" }
+    ]
+  },
+  {
+    "rank": 2,
+    "title": "Acheron",
+    "creator": "GrenadeOfTacos",
+    "recordHolders": [
+      { "name": "Zoink", "percent": "100%" },
+      { "name": "Trusta", "percent": "100%" }
+    ]
+  },
+  {
+    "rank": 3,
+    "title": "Shukketsu",
+    "creator": "Wooshi999",
+    "recordHolders": [
+      { "name": "Nswish", "percent": "100%" },
+      { "name": "Sunix", "percent": "100%" }
+    ]
+  }
+]
