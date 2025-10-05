@@ -3,12 +3,18 @@
     "rank": 1,
     "title": "Slaughterhouse",
     "creator": "IcedCave",
-    "recordHolders": []
+    "youtube": "dQw4w9WgXcQ",
+    "recordHolders": [
+      { "name": "SpaceUK", "percent": "100%", "verified": true },
+      { "name": "Trick", "percent": "100%" },
+      { "name": "Zoink", "percent": "100%" }
+    ]
   },
   {
     "rank": 2,
     "title": "Acheron",
     "creator": "GrenadeOfTacos",
+    "youtube": "9bZkp7q19f0",
     "recordHolders": [
       { "name": "Zoink", "percent": "100%" },
       { "name": "Trusta", "percent": "100%" }
@@ -18,11 +24,30 @@
     "rank": 3,
     "title": "Shukketsu",
     "creator": "Wooshi999",
+    "youtube": "3JZ_D3ELwOQ",
     "recordHolders": [
       { "name": "Nswish", "percent": "100%" },
       { "name": "Sunix", "percent": "100%" }
     ]
+  },
+  {
+    "rank": 4,
+    "title": "Infernal Abyss",
+    "creator": "LavaMaster",
+    "youtube": "fJ9rUzIMcZQ",
+    "recordHolders": [
+      { "name": "Magma", "percent": "98%", "verified": true },
+      { "name": "Blaze", "percent": "97%" }
+    ]
+  },
+  {
+    "rank": 5,
+    "title": "Celestial Rush",
+    "creator": "StarGazer",
+    "youtube": "eY52Zsg-KVI",
+    "recordHolders": [
+      { "name": "Nova", "percent": "100%", "verified": true },
+      { "name": "Comet", "percent": "99%" }
+    ]
   }
 ]
-
-
