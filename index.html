@@ -77,26 +77,28 @@
           `;
           section.setAttribute("aria-labelledby", `level-${level.rank}`);
 
-          // YouTube thumbnail image linking to video
+          // YouTube thumbnail smaller and beside the info
           const youtubeThumbnail = level.youtube
-            ? `<div class="mt-4">
-                 <a href="https://www.youtube.com/watch?v=${level.youtube}" target="_blank" rel="noopener noreferrer">
-                   <img src="https://img.youtube.com/vi/${level.youtube}/hqdefault.jpg" 
-                        alt="${level.title} YouTube Video Thumbnail" 
-                        class="w-full rounded-lg hover:scale-105 transition-transform"/>
-                 </a>
-               </div>`
+            ? `<a href="https://www.youtube.com/watch?v=${level.youtube}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0 mr-4">
+                 <img src="https://img.youtube.com/vi/${level.youtube}/hqdefault.jpg" 
+                      alt="${level.title} YouTube Video Thumbnail" 
+                      class="w-32 h-18 rounded-lg hover:scale-105 transition-transform object-cover"/>
+               </a>`
             : "";
 
           section.innerHTML = `
-            <div class="flex items-center justify-between">
-              <h2 id="level-${level.rank}" class="text-2xl font-bold">#${level.rank} — ${level.title}</h2>
-              <span class="text-sm text-zinc-400">by ${level.creator}</span>
-            </div>
-            ${youtubeThumbnail}
-            <div class="mt-2 border-t border-zinc-700 pt-2 record-holders" style="display: block;">
-              <p class="text-sm text-zinc-400 mb-1">Record Holders:</p>
-              <ul class="text-sm space-y-1">${holdersHTML}</ul>
+            <div class="flex items-start">
+              ${youtubeThumbnail}
+              <div class="flex-1">
+                <div class="flex items-center justify-between">
+                  <h2 id="level-${level.rank}" class="text-2xl font-bold">#${level.rank} — ${level.title}</h2>
+                  <span class="text-sm text-zinc-400">by ${level.creator}</span>
+                </div>
+                <div class="mt-2 border-t border-zinc-700 pt-2 record-holders" style="display: block;">
+                  <p class="text-sm text-zinc-400 mb-1">Record Holders:</p>
+                  <ul class="text-sm space-y-1">${holdersHTML}</ul>
+                </div>
+              </div>
             </div>
           `;
 
