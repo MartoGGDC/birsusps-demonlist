@@ -32,8 +32,39 @@
     async function loadLevels() {
       const container = document.getElementById("list");
       try {
-        const res = await fetch("levels.json");
-        const levels = await res.json();
+        const levels = [
+  {
+    "rank": 1,
+    "title": "Nilscapes",
+    "creator": "Nil",
+    "youtube": "keep-video-id-here",
+    "recordHolders": [{ "name": "Nil", "percent": "100%", "verified": true }]
+  },
+  {
+    "rank": 2,
+    "title": "Zig Zag",
+    "creator": "Anna",
+    "youtube": "keep-video-id-here",
+    "recordHolders": [
+      { "name": "Anna", "percent": "100%", "verified": true },
+      { "name": "MartoGG", "percent": "100%" }
+    ]
+  },
+  {
+    "rank": 3,
+    "title": "Astral Divine",
+    "creator": "ghjvbn",
+    "youtube": "",
+    "recordHolders": [{ "name": "MartoGG", "percent": "100%", "verified": true }]
+  },
+  { "rank": 4, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
+  { "rank": 5, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
+  { "rank": 6, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
+  { "rank": 7, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
+  { "rank": 8, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
+  { "rank": 9, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
+  { "rank": 10, "title": "", "creator": "", "youtube": "", "recordHolders": [] }
+];
         container.innerHTML = "";
 
         levels.forEach((level, index) => {
@@ -118,3 +149,4 @@
   </script>
 </body>
 </html>
+
