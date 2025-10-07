@@ -1,23 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BIRSUSPS DEMONLIST</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* tiny helper for smooth height transitions of expandable lists */
+    .collapsible {
+      transition: max-height 300ms ease;
+      overflow: hidden;
+    }
+  </style>
 </head>
-
-<body class="bg-zinc-900 text-zinc-100 font-sans min-h-screen transition-colors duration-500">
+<body class="bg-zinc-900 text-zinc-100 font-sans min-h-screen">
 
   <header class="text-center py-8">
-    <h1 class="text-4xl font-extrabold tracking-tight">BIRSUSPS DEMONLIST</h1>
-    <p class="text-zinc-400 text-sm mt-1">The official demonlist for BirsusPS (2.2)</p>
+    <div class="max-w-2xl mx-auto px-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-4xl font-extrabold tracking-tight">BIRSUSPS DEMONLIST</h1>
+        <p class="text-zinc-400 text-sm mt-1">The official demonlist for BirsusPS (2.2)</p>
+      </div>
+      <!-- Leaderboard toggle (in header, scrolls away) -->
+      <div>
+        <button id="viewToggle" class="px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-100 transition">
+          View Leaderboard
+        </button>
+      </div>
+    </div>
   </header>
 
   <!-- Filter Section -->
-  <div class="max-w-2xl mx-auto px-4 mb-6 flex gap-2">
-    <input type="text" id="filterInput" placeholder="Filter by creator or rank..."
-           class="flex-1 p-2 rounded bg-zinc-800 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"/>
+  <div class="max-w-2xl mx-auto px-4 mb-6">
+    <div class="flex gap-2">
+      <input type="text" id="filterInput" placeholder="Filter by creator or rank..."
+             class="flex-1 p-2 rounded bg-zinc-800 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"/>
+    </div>
   </div>
 
   <main id="list" class="max-w-2xl mx-auto px-4 pb-16 space-y-6">
@@ -28,25 +46,23 @@
     © 2025 Birsusp Demonlist • Made by MartoGG
   </footer>
 
-  <script>
-    async function loadLevels() {
-      const container = document.getElementById("list");
-      try {
-        const levels = [
+<script>
+/* ---------- Inline data (levels) ---------- */
+const levels = [
   {
     "rank": 1,
     "title": "Nilscapes",
     "creator": "Nil",
-    "youtube": "mTd3XmhyiPk",
+    "youtube": "keep-video-id-here",
     "recordHolders": [{ "name": "Nil", "percent": "100%", "verified": true }]
   },
   {
     "rank": 2,
     "title": "Zig Zag",
     "creator": "Anna",
-    "youtube": "wJVrcc1NC-Y",
+    "youtube": "keep-video-id-here",
     "recordHolders": [
-      { "name": "BirsusGD", "percent": "100%", "verified": true },
+      { "name": "Anna", "percent": "100%", "verified": true },
       { "name": "MartoGG", "percent": "100%" }
     ]
   },
@@ -54,7 +70,7 @@
     "rank": 3,
     "title": "Astral Divine",
     "creator": "ghjvbn",
-    "youtube": "IyO0vSqMTwk",
+    "youtube": "",
     "recordHolders": [{ "name": "MartoGG", "percent": "100%", "verified": true }]
   },
   { "rank": 4, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
@@ -65,90 +81,283 @@
   { "rank": 9, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
   { "rank": 10, "title": "", "creator": "", "youtube": "", "recordHolders": [] }
 ];
-        container.innerHTML = "";
 
-        levels.forEach((level, index) => {
-          level.recordHolders.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
+/* ---------- Helpers ---------- */
+function pointercratePoints(rank) {
+  // points = 150 * 0.95^(rank - 1)
+  return 150 * Math.pow(0.95, Math.max(0, rank - 1));
+}
 
-          const holdersHTML = level.recordHolders.length
-            ? level.recordHolders.map(h => {
-                const nameHTML = h.verified
-                  ? `<span class="text-purple-400 drop-shadow-[0_0_2px_purple]">${h.name}</span>`
-                  : h.name;
-                return `• ${nameHTML} — ${h.percent}${h.verified ? " (Verified)" : ""}`;
-              }).join("<br>")
-            : "<span class='text-zinc-500'>No record holders yet.</span>";
+function parsePercent(str) {
+  if (!str) return 0;
+  const m = String(str).trim().match(/^(\d+(\.\d+)?)\s*%?$/);
+  if (!m) return 0;
+  return parseFloat(m[1]);
+}
 
-          const section = document.createElement("section");
-          section.className = `
-            bg-zinc-800 p-4 rounded-2xl shadow-lg
-            hover:bg-zinc-700 hover:ring-2 hover:ring-indigo-500 hover:ring-opacity-50
-            transition-all duration-300 ease-out
-            opacity-0 translate-y-4 cursor-pointer
-          `;
-          section.setAttribute("aria-labelledby", `level-${level.rank}`);
+/* ---------- State ---------- */
+let currentView = 'levels'; // 'levels' or 'leaderboard'
 
-          const youtubeThumbnail = level.youtube
-            ? `<a href="https://www.youtube.com/watch?v=${level.youtube}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0 mr-4">
-                 <img src="https://img.youtube.com/vi/${level.youtube}/hqdefault.jpg" 
-                      alt="${level.title} YouTube Video Thumbnail" 
-                      class="w-32 h-18 rounded-lg hover:scale-105 transition-transform object-cover"/>
-               </a>`
-            : "";
+/* ---------- Renderers ---------- */
+function renderLevelsView(container, levelsArr) {
+  container.innerHTML = "";
+  // Loading replaced by actual content
+  levelsArr.forEach((level, index) => {
+    // sort record holders: verified first
+    level.recordHolders.sort((a,b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
 
-          section.innerHTML = `
-            <div class="flex items-start">
-              ${youtubeThumbnail}
-              <div class="flex-1">
-                <div class="flex items-center justify-between">
-                  <h2 id="level-${level.rank}" class="text-2xl font-bold text-zinc-100">#${level.rank} — ${level.title}</h2>
-                  <span class="text-sm text-zinc-400">by ${level.creator}</span>
-                </div>
-                <div class="mt-2 border-t border-zinc-700 pt-2 record-holders" style="display: none;">
-                  <p class="text-sm text-zinc-100 mb-1">Record Holders:</p>
-                  <ul class="text-sm space-y-1 text-zinc-100">${holdersHTML}</ul>
-                </div>
-              </div>
-            </div>
-          `;
+    // record holders HTML (each on separate line)
+    const holdersHTML = level.recordHolders.length
+      ? level.recordHolders.map(h => {
+          const nameHTML = h.verified
+            ? `<span class="text-purple-400 drop-shadow-[0_0_2px_purple]">${escapeHtml(h.name)}</span>`
+            : escapeHtml(h.name);
+          return `<li class="list-none">${nameHTML} — ${escapeHtml(h.percent)}${h.verified ? ' <span class="text-zinc-400">(Verified)</span>' : ''}</li>`;
+        }).join("")
+      : `<li class="list-none text-zinc-500">No record holders yet.</li>`;
 
-          container.appendChild(section);
+    const section = document.createElement('section');
+    section.className = [
+      'bg-zinc-800 p-4 rounded-2xl shadow-lg',
+      'hover:bg-zinc-700 hover:ring-2 hover:ring-indigo-500 hover:ring-opacity-50',
+      'transition-all duration-300 ease-out',
+      'opacity-0 translate-y-4 cursor-pointer'
+    ].join(' ');
+    section.setAttribute('aria-labelledby', `level-${level.rank}`);
 
-          setTimeout(() => {
-            section.classList.remove("opacity-0", "translate-y-4");
-            section.classList.add("opacity-100", "translate-y-0");
-          }, index * 150);
+    const youtubeThumbnail = level.youtube
+      ? `<a href="https://www.youtube.com/watch?v=${encodeURIComponent(level.youtube)}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0 mr-4">
+           <img src="https://img.youtube.com/vi/${encodeURIComponent(level.youtube)}/hqdefault.jpg"
+                alt="${escapeHtml(level.title)} YouTube Video Thumbnail"
+                class="w-32 h-18 rounded-lg hover:scale-105 transition-transform object-cover"/>
+         </a>`
+      : '';
 
-          section.addEventListener('click', (e) => {
-            if (!e.target.closest('a')) {
-              const holdersDiv = section.querySelector('.record-holders');
-              holdersDiv.style.display = holdersDiv.style.display === 'none' ? 'block' : 'none';
-            }
-          });
+    section.innerHTML = `
+      <div class="flex items-start">
+        ${youtubeThumbnail}
+        <div class="flex-1">
+          <div class="flex items-center justify-between">
+            <h2 id="level-${level.rank}" class="text-2xl font-bold text-zinc-100">#${level.rank} — ${escapeHtml(level.title || '—')}</h2>
+            <span class="text-sm text-zinc-400">by ${escapeHtml(level.creator || '—')}</span>
+          </div>
+          <div class="mt-2 border-t border-zinc-700 pt-2 record-holders" style="display: none;">
+            <p class="text-sm text-zinc-100 mb-1">Record Holders:</p>
+            <ul class="text-sm space-y-1 text-zinc-100">${holdersHTML}</ul>
+          </div>
+        </div>
+      </div>
+    `;
 
-          section.dataset.creator = level.creator.toLowerCase();
-          section.dataset.rank = String(level.rank);
-        });
+    container.appendChild(section);
 
-        const filterInput = document.getElementById('filterInput');
-        filterInput.addEventListener('input', () => {
-          const query = filterInput.value.toLowerCase();
-          container.querySelectorAll('section').forEach(section => {
-            const matches = section.dataset.creator.includes(query) || section.dataset.rank.includes(query);
-            section.style.display = matches ? 'block' : 'none';
-          });
-        });
+    // fade-in staggered
+    setTimeout(() => {
+      section.classList.remove('opacity-0','translate-y-4');
+      section.classList.add('opacity-100','translate-y-0');
+    }, index * 150);
 
-      } catch (err) {
-        container.innerHTML = `<p class="text-center text-red-400">Failed to load levels.json 😢</p>`;
-        console.error(err);
+    // collapsible record holders (start collapsed)
+    section.addEventListener('click', (e) => {
+      if (!e.target.closest('a')) {
+        const holdersDiv = section.querySelector('.record-holders');
+        if (!holdersDiv) return;
+        if (holdersDiv.style.display === 'none' || holdersDiv.style.display === '') {
+          holdersDiv.style.display = 'block';
+        } else {
+          holdersDiv.style.display = 'none';
+        }
       }
-    }
+    });
 
-    loadLevels();
-  </script>
+    // store for filtering
+    section.dataset.creator = (level.creator || '').toLowerCase();
+    section.dataset.rank = String(level.rank);
+  });
+
+  // filter hookup (already exists, but ensure works)
+  const filterInput = document.getElementById('filterInput');
+  filterInput.oninput = () => {
+    const q = filterInput.value.toLowerCase();
+    container.querySelectorAll('section').forEach(section => {
+      const matches = section.dataset.creator.includes(q) || section.dataset.rank.includes(q);
+      section.style.display = matches ? 'block' : 'none';
+    });
+  };
+}
+
+function renderLeaderboardView(container, levelsArr) {
+  container.innerHTML = '';
+
+  // Build player map
+  const players = {}; // name -> {name, points, completionsCount, records: [{rank,title,percent,points}]}
+  levelsArr.forEach(level => {
+    const levelPts = pointercratePoints(level.rank);
+    (level.recordHolders || []).forEach(rec => {
+      const name = rec.name || 'Unknown';
+      const percent = parsePercent(rec.percent);
+      const earned = (percent / 100) * levelPts;
+      if (!players[name]) players[name] = { name, points: 0, completions: 0, records: [] };
+      players[name].points += earned;
+      if (percent >= 1) players[name].completions += (percent >= 100 ? 1 : 0); // count 100% as a completion
+      // store record (show percent and earned points)
+      players[name].records.push({
+        rank: level.rank,
+        title: level.title,
+        percent,
+        earned
+      });
+    });
+  });
+
+  // Turn map into sorted array (descending by points)
+  const playerList = Object.values(players)
+    .map(p => ({...p, points: p.points }))
+    .sort((a,b) => b.points - a.points);
+
+  // Build leaderboard UI
+  const containerInner = document.createElement('div');
+  containerInner.className = 'space-y-4';
+
+  const headerRow = document.createElement('div');
+  headerRow.className = 'flex items-center justify-between text-zinc-400';
+  headerRow.innerHTML = `<div class="text-lg font-semibold">Leaderboard</div>
+                         <div class="text-sm">Pointercrate formula: points = 150 × 0.95^(rank-1)</div>`;
+  containerInner.appendChild(headerRow);
+
+  if (playerList.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'text-zinc-500';
+    empty.textContent = 'No players with records yet.';
+    containerInner.appendChild(empty);
+  } else {
+    // table header
+    const table = document.createElement('div');
+    table.className = 'bg-zinc-800 p-3 rounded-2xl shadow-lg';
+    table.innerHTML = `
+      <div class="hidden md:flex text-xs text-zinc-400 uppercase tracking-wide mb-2 px-2">
+        <div class="w-12">Rank</div>
+        <div class="flex-1">Player</div>
+        <div class="w-28 text-right">Points</div>
+        <div class="w-28 text-right">100% Count</div>
+      </div>
+    `;
+    // rows
+    playerList.forEach((p, i) => {
+      const row = document.createElement('div');
+      row.className = 'border-t border-zinc-700 pt-3 mt-3';
+      // compute completions (explicit 100% count)
+      const fullCount = p.records.filter(r => r.percent >= 100).length;
+      row.innerHTML = `
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-12 text-xl font-bold text-zinc-100">${i+1}</div>
+            <div>
+              <div class="text-lg font-semibold text-zinc-100">${escapeHtml(p.name)}</div>
+              <div class="text-sm text-zinc-400">${(p.records.length)} record(s)</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-lg font-medium text-zinc-100">${p.points.toFixed(2)}</div>
+            <div class="text-sm text-zinc-400 text-right">${fullCount} × 100%</div>
+          </div>
+        </div>
+      `;
+
+      // expandable details (levels they have records on)
+      const details = document.createElement('div');
+      details.className = 'collapsible mt-3';
+      // fill with list of records (rank — title — % — earned pts)
+      details.innerHTML = `<ul class="space-y-1 text-sm text-zinc-100">${p.records
+        .sort((a,b) => a.rank - b.rank)
+        .map(r => `<li>#${r.rank} — ${escapeHtml(r.title || '—')} — ${r.percent}% — ${r.earned.toFixed(2)} pts</li>`)
+        .join('')}</ul>`;
+
+      // collapsed by default
+      details.style.maxHeight = '0px';
+
+      // toggle button
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'mt-2 text-sm text-indigo-300 hover:text-indigo-200';
+      toggleBtn.textContent = 'Show levels';
+      toggleBtn.addEventListener('click', () => {
+        if (details.style.maxHeight === '0px' || !details.style.maxHeight) {
+          details.style.maxHeight = details.scrollHeight + 'px';
+          toggleBtn.textContent = 'Hide levels';
+        } else {
+          details.style.maxHeight = '0px';
+          toggleBtn.textContent = 'Show levels';
+        }
+      });
+
+      row.appendChild(details);
+      row.appendChild(toggleBtn);
+      table.appendChild(row);
+    });
+
+    containerInner.appendChild(table);
+  }
+
+  // fade-in for leaderboard container
+  container.appendChild(containerInner);
+  containerInner.classList.add('opacity-0','translate-y-2');
+  setTimeout(() => {
+    containerInner.classList.remove('opacity-0','translate-y-2');
+    containerInner.classList.add('opacity-100','translate-y-0','transition-all','duration-400');
+  }, 50);
+}
+
+/* ---------- Utilities ---------- */
+function escapeHtml(str) {
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#39;');
+}
+
+/* ---------- App init ---------- */
+const container = document.getElementById('list');
+const viewToggle = document.getElementById('viewToggle');
+const filterInput = document.getElementById('filterInput');
+
+function showLevelsView() {
+  currentView = 'levels';
+  viewToggle.textContent = 'View Leaderboard';
+  // render levels
+  renderLevelsView(container, levels);
+}
+
+function showLeaderboardView() {
+  currentView = 'leaderboard';
+  viewToggle.textContent = 'View Levels';
+  renderLeaderboardView(container, levels);
+}
+
+// initial render
+showLevelsView();
+
+// button toggles views
+viewToggle.addEventListener('click', () => {
+  if (currentView === 'levels') {
+    showLeaderboardView();
+  } else {
+    showLevelsView();
+  }
+});
+
+// keep filter functionality in levels view only (leaderboard ignores filter)
+filterInput.addEventListener('input', () => {
+  if (currentView === 'levels') {
+    const q = filterInput.value.toLowerCase();
+    container.querySelectorAll('section').forEach(section => {
+      const matches = section.dataset.creator.includes(q) || section.dataset.rank.includes(q);
+      section.style.display = matches ? 'block' : 'none';
+    });
+  }
+});
+</script>
 </body>
 </html>
-
-
-
