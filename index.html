@@ -112,7 +112,7 @@ function renderLevelsView(container, levelsArr) {
           const nameHTML = h.verified
             ? `<span class="text-purple-400 drop-shadow-[0_0_2px_purple]">${escapeHtml(h.name)}</span>`
             : escapeHtml(h.name);
-          return `<li class="list-none">${nameHTML} — ${escapeHtml(h.percent)}${h.verified ? ' <span class="text-zinc-400">(Verified)</span>' : ''}</li>`;
+          return `<li class="list-none">${nameHTML} - ${escapeHtml(h.percent)}${h.verified ? ' <span class="text-zinc-400">(Verified)</span>' : ''}</li>`;
         }).join("")
       : `<li class="list-none text-zinc-500">No record holders yet.</li>`;
 
@@ -138,8 +138,8 @@ function renderLevelsView(container, levelsArr) {
         ${youtubeThumbnail}
         <div class="flex-1">
           <div class="flex items-center justify-between">
-            <h2 id="level-${level.rank}" class="text-2xl font-bold text-zinc-100">#${level.rank} — ${escapeHtml(level.title || '—')}</h2>
-            <span class="text-sm text-zinc-400">by ${escapeHtml(level.creator || '—')}</span>
+            <h2 id="level-${level.rank}" class="text-2xl font-bold text-zinc-100">#${level.rank} - ${escapeHtml(level.title || '-')}</h2>
+            <span class="text-sm text-zinc-400">by ${escapeHtml(level.creator || '-')}</span>
           </div>
           <div class="mt-2 border-t border-zinc-700 pt-2 record-holders" style="display: none;">
             <p class="text-sm text-zinc-100 mb-1">Record Holders:</p>
@@ -222,7 +222,6 @@ function renderLeaderboardView(container, levelsArr) {
   const headerRow = document.createElement('div');
   headerRow.className = 'flex items-center justify-between text-zinc-400';
   headerRow.innerHTML = `<div class="text-lg font-semibold">Leaderboard</div>
-                         <div class="text-sm">Pointercrate formula: points = 150 × 0.95^(rank-1)</div>`;
   containerInner.appendChild(headerRow);
 
   if (playerList.length === 0) {
@@ -239,7 +238,6 @@ function renderLeaderboardView(container, levelsArr) {
         <div class="w-12">Rank</div>
         <div class="flex-1">Player</div>
         <div class="w-28 text-right">Points</div>
-        <div class="w-28 text-right">100% Count</div>
       </div>
     `;
     // rows
@@ -258,8 +256,6 @@ function renderLeaderboardView(container, levelsArr) {
             </div>
           </div>
           <div class="text-right">
-            <div class="text-lg font-medium text-zinc-100">${p.points.toFixed(2)}</div>
-            <div class="text-sm text-zinc-400 text-right">${fullCount} × 100%</div>
           </div>
         </div>
       `;
@@ -267,10 +263,10 @@ function renderLeaderboardView(container, levelsArr) {
       // expandable details (levels they have records on)
       const details = document.createElement('div');
       details.className = 'collapsible mt-3';
-      // fill with list of records (rank — title — % — earned pts)
+      // fill with list of records (rank - title - % - earned pts)
       details.innerHTML = `<ul class="space-y-1 text-sm text-zinc-100">${p.records
         .sort((a,b) => a.rank - b.rank)
-        .map(r => `<li>#${r.rank} — ${escapeHtml(r.title || '—')} — ${r.percent}% — ${r.earned.toFixed(2)} pts</li>`)
+        .map(r => `<li>#${r.rank} - ${escapeHtml(r.title || '-')} - ${r.percent}% </li>`)
         .join('')}</ul>`;
 
       // collapsed by default
@@ -361,3 +357,4 @@ filterInput.addEventListener('input', () => {
 </script>
 </body>
 </html>
+
