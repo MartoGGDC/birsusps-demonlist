@@ -69,14 +69,7 @@ const levels = [
     "creator": "ghjvbn",
     "youtube": "",
     "recordHolders": [{ "name": "MartoGG", "percent": "100%", "verified": true }]
-  },
-  { "rank": 4, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
-  { "rank": 5, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
-  { "rank": 6, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
-  { "rank": 7, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
-  { "rank": 8, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
-  { "rank": 9, "title": "", "creator": "", "youtube": "", "recordHolders": [] },
-  { "rank": 10, "title": "", "creator": "", "youtube": "", "recordHolders": [] }
+  }
 ];
 
 /* ---------- Helpers ---------- */
@@ -87,18 +80,7 @@ function pointercratePoints(rank) {
 function parsePercent(str) {
   if (!str) return 0;
   const m = String(str).trim().match(/^(\d+(\.\d+)?)\s*%?$/);
-  if (!m) return 0;
-  return parseFloat(m[1]);
-}
-
-function escapeHtml(str) {
-  if (!str && str !== 0) return '';
-  return String(str)
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'",'&#39;');
+  return m ? parseFloat(m[1]) : 0;
 }
 
 /* ---------- State ---------- */
@@ -120,12 +102,7 @@ function renderLevelsView(container, levelsArr) {
       : `<li class="list-none text-zinc-500">No record holders yet.</li>`;
 
     const section = document.createElement('section');
-    section.className = [
-      'bg-zinc-800 p-4 rounded-2xl shadow-lg',
-      'hover:bg-zinc-700 hover:ring-2 hover:ring-indigo-500 hover:ring-opacity-50',
-      'transition-all duration-300 ease-out',
-      'opacity-0 translate-y-4 cursor-pointer'
-    ].join(' ');
+    section.className = 'bg-zinc-800 p-4 rounded-2xl shadow-lg hover:bg-zinc-700 hover:ring-2 hover:ring-indigo-500 hover:ring-opacity-50 transition-all duration-300 ease-out opacity-0 translate-y-4 cursor-pointer';
     section.setAttribute('aria-labelledby', `level-${level.rank}`);
 
     const youtubeThumbnail = level.youtube
@@ -133,7 +110,8 @@ function renderLevelsView(container, levelsArr) {
            <img src="https://img.youtube.com/vi/${encodeURIComponent(level.youtube)}/hqdefault.jpg"
                 alt="${escapeHtml(level.title)} YouTube Video Thumbnail"
                 class="w-32 h-18 rounded-lg hover:scale-105 transition-transform object-cover"/>
-         </a>` : '';
+         </a>`
+      : '';
 
     section.innerHTML = `
       <div class="flex items-start">
@@ -180,7 +158,7 @@ function renderLevelsView(container, levelsArr) {
   };
 }
 
-/* ---------- LEADERBOARD WITH FLAGS ---------- */
+/* ---------- Updated Leaderboard (with 🇧🇬 flag) ---------- */
 function renderLeaderboardView(container, levelsArr) {
   container.innerHTML = '';
 
@@ -198,7 +176,11 @@ function renderLeaderboardView(container, levelsArr) {
   });
 
   const playerList = Object.values(players).sort((a,b) => b.points - a.points);
-  const playerFlags = { "MartoGG": "🇧🇬" };
+
+  // Hardcoded flag mapping
+  const playerFlags = {
+    "MartoGG": "🇧🇬"
+  };
 
   const containerInner = document.createElement('div');
   containerInner.className = 'space-y-4';
@@ -250,8 +232,6 @@ function renderLeaderboardView(container, levelsArr) {
         .map(r => `<li>#${r.rank} - ${escapeHtml(r.title || '-')} - ${r.percent}%</li>`)
         .join('')}</ul>`;
       details.style.maxHeight = '0px';
-      details.style.overflow = 'hidden';
-      details.style.transition = 'max-height 0.3s ease';
 
       const nameElem = row.querySelector('.player-name');
       nameElem.addEventListener('click', (e) => {
@@ -276,6 +256,17 @@ function renderLeaderboardView(container, levelsArr) {
     containerInner.classList.remove('opacity-0','translate-y-2');
     containerInner.classList.add('opacity-100','translate-y-0','transition-all','duration-400');
   }, 50);
+}
+
+/* ---------- Utilities ---------- */
+function escapeHtml(str) {
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#39;');
 }
 
 /* ---------- App init ---------- */
