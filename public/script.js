@@ -1,50 +1,34 @@
 let levels = [];
-let currentView = 'levels';
-let isAdmin = false;
+let token = null; 
 let editingIndex = null;
-let token = localStorage.getItem('token') || null;
+let isAdmin = false;
 
 const container = document.getElementById('list');
 const viewToggle = document.getElementById('viewToggle');
 const filterInput = document.getElementById('filterInput');
 const loginModal = document.getElementById('loginModal');
-const loginBtn = document.getElementById('loginBtn');
-const cancelLogin = document.getElementById('cancelLogin');
-const confirmLogin = document.getElementById('confirmLogin');
-const loginError = document.getElementById('loginError');
 const editModal = document.getElementById('editModal');
-const editForm = document.getElementById('editForm');
-const cancelEdit = document.getElementById('cancelEdit');
 
 /* ---------- Helpers ---------- */
-function pointercratePoints(rank){ return 150 * Math.pow(0.95, Math.max(0, rank-1)); }
-function parsePercent(str){ if(!str) return 0; const m=String(str).trim().match(/^(\d+(\.\d+)?)\s*%?$/); return m?parseFloat(m[1]):0; }
 function escapeHtml(str){ if(!str && str!==0) return ''; return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;'); }
 
-/* ---------- Fetch Levels ---------- */
-async function loadLevels(){
-  const res = await fetch('/levels');
-  levels = await res.json();
-}
+function parsePercent(str){ if(!str) return 0; const m=String(str).trim().match(/^(\d+(\.\d+)?)\s*%?$/); return m?parseFloat(m[1]):0; }
 
-/* ---------- Save Levels ---------- */
-async function saveLevels(){
-  if(!token) return;
-  await fetch('/levels',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(levels)
-  });
+function pointercratePoints(rank){ return 150 * Math.pow(0.95, Math.max(0, rank-1)); }
+
+/* ---------- Fetch Levels ---------- */
+async function fetchLevels(){
+  const res = await fetch('/api/levels');
+  levels = await res.json();
+  renderLevelsView(container, levels);
 }
 
 /* ---------- Render Levels ---------- */
-function renderLevelsView(){
+function renderLevelsView(container, levelsArr){
   container.innerHTML='';
-  levels.sort((a,b)=>a.rank-b.rank);
-  levels.forEach((level,index)=>{
+  levelsArr.sort((a,b)=>a.rank-b.rank);
+
+  levelsArr.forEach((level,index)=>{
     level.recordHolders.sort((a,b)=>(b.verified?1:0)-(a.verified?1:0));
     const holdersHTML = level.recordHolders.length
       ? level.recordHolders.map(h=>`${h.verified?`<span class="text-purple-400 drop-shadow-[0_0_2px_purple]">${escapeHtml(h.name)}</span>`:escapeHtml(h.name)} - ${escapeHtml(h.percent)}${h.verified?' <span class="text-zinc-400">(Verified)</span>':''}`).join('')
@@ -57,7 +41,9 @@ function renderLevelsView(){
 
     const youtubeThumbnail = level.youtube
       ? `<a href="https://www.youtube.com/watch?v=${encodeURIComponent(level.youtube)}" target="_blank" rel="noopener noreferrer" class="flex-shrink-0 mr-4">
-           <img src="https://img.youtube.com/vi/${encodeURIComponent(level.youtube)}/hqdefault.jpg" alt="${escapeHtml(level.title)}" class="w-32 h-18 rounded-lg hover:scale-105 transition-transform object-cover"/>
+           <img src="https://img.youtube.com/vi/${encodeURIComponent(level.youtube)}/hqdefault.jpg"
+                alt="${escapeHtml(level.title)} YouTube Video Thumbnail"
+                class="w-32 h-18 rounded-lg hover:scale-105 transition-transform object-cover"/>
          </a>` : '';
 
     const editButton = isAdmin
@@ -82,6 +68,7 @@ function renderLevelsView(){
         </div>
       </div>
     `;
+
     container.appendChild(section);
     setTimeout(()=>{ section.classList.remove('opacity-0','translate-y-4'); section.classList.add('opacity-100','translate-y-0'); }, index*150);
 
@@ -96,35 +83,38 @@ function renderLevelsView(){
     if(isAdmin){
       const editBtn = section.querySelector('.editBtn');
       const delBtn = section.querySelector('.deleteBtn');
-      editBtn.addEventListener('click',(e)=>{
+
+      editBtn.addEventListener('click', async (e)=>{
         e.stopPropagation();
         editingIndex = index;
         openEditModal(level);
       });
-      delBtn.addEventListener('click',(e)=>{
+
+      delBtn.addEventListener('click', async (e)=>{
         e.stopPropagation();
-        openConfirmModal(`Delete level #${level.rank} - "${level.title}"?`, async ()=>{
-          levels.splice(index,1);
-          levels.forEach((l,i)=>l.rank=i+1);
-          await saveLevels();
-          renderLevelsView();
-        });
+        if(confirm(`Delete level #${level.rank} - "${level.title}"?`)){
+          await fetch(`/api/levels/${level.rank}`, {
+            method:'DELETE',
+            headers:{ 'Authorization': `Bearer ${token}` }
+          });
+          fetchLevels();
+        }
       });
     }
   });
 
-  // Create Level Button
   if(isAdmin){
     const btn = document.createElement('button');
     btn.textContent='Create Level';
-    btn.className='px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm';
-    btn.onclick=()=>{
-      const newRank = levels.length+1;
-      const newLevel = { rank:newRank, title:"New Level", creator:"", youtube:"", recordHolders:[] };
-      levels.push(newLevel);
-      editingIndex = levels.length-1;
-      renderLevelsView();
-      openEditModal(newLevel);
+    btn.className='px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm';
+    btn.onclick=async ()=>{
+      const newLevel = { title:'New Level', creator:'', youtube:'', recordHolders:[] };
+      await fetch('/api/levels',{
+        method:'POST',
+        headers:{ 'Content-Type':'application/json','Authorization': `Bearer ${token}` },
+        body: JSON.stringify(newLevel)
+      });
+      fetchLevels();
     };
     container.appendChild(btn);
   }
@@ -139,68 +129,76 @@ function renderLevelsView(){
 }
 
 /* ---------- Edit Modal ---------- */
+const editForm = document.getElementById('editForm');
+const cancelEdit = document.getElementById('cancelEdit');
+
 function openEditModal(level){
   document.getElementById('editRank').value=level.rank;
   document.getElementById('editTitle').value=level.title;
   document.getElementById('editCreator').value=level.creator;
-  document.getElementById('editYoutube').value=level.youtube;
+  document.getElementById('editYoutube').value=level.youtube||'';
   document.getElementById('editRecords').value=level.recordHolders.map(r=>`${r.name}-${r.percent}-${r.verified?'true':'false'}`).join(',');
   editModal.classList.remove('hidden');
 }
 
 cancelEdit.addEventListener('click',()=>editModal.classList.add('hidden'));
 
-editForm.addEventListener('submit',async(e)=>{
+editForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
   const lvl = levels[editingIndex];
   const oldRank = lvl.rank;
   const newRank = parseInt(document.getElementById('editRank').value);
-  lvl.title=document.getElementById('editTitle').value;
-  lvl.creator=document.getElementById('editCreator').value;
-  lvl.youtube=document.getElementById('editYoutube').value;
-  lvl.recordHolders=document.getElementById('editRecords').value.split(',').map(s=>{
-    const parts=s.split('-');
-    return { name:parts[0].trim(), percent:parts[1]?.trim()||'0%', verified:parts[2]?.trim().toLowerCase()==='true' };
+
+  const updatedLevel = {
+    title: document.getElementById('editTitle').value,
+    creator: document.getElementById('editCreator').value,
+    youtube: document.getElementById('editYoutube').value,
+    recordHolders: document.getElementById('editRecords').value.split(',').map(s=>{
+      const parts = s.split('-');
+      return { name:parts[0]?.trim(), percent:parts[1]?.trim()||'0%', verified:parts[2]?.trim().toLowerCase()==='true' };
+    }),
+    rank: newRank
+  };
+
+  await fetch(`/api/levels/${oldRank}`, {
+    method:'PUT',
+    headers:{ 'Content-Type':'application/json','Authorization': `Bearer ${token}` },
+    body: JSON.stringify(updatedLevel)
   });
-
-  if(newRank!==oldRank){
-    const target = levels.find(l=>l.rank===newRank);
-    if(target) target.rank = oldRank;
-    lvl.rank = newRank;
-  }
-
-  levels.sort((a,b)=>a.rank-b.rank);
-  await saveLevels();
-  renderLevelsView();
+  fetchLevels();
   editModal.classList.add('hidden');
 });
 
 /* ---------- Login ---------- */
+const loginBtn=document.getElementById('loginBtn');
+const cancelLogin=document.getElementById('cancelLogin');
+const confirmLogin=document.getElementById('confirmLogin');
+
 loginBtn.addEventListener('click',()=>loginModal.classList.remove('hidden'));
 cancelLogin.addEventListener('click',()=>loginModal.classList.add('hidden'));
 
-confirmLogin.addEventListener('click', async()=>{
-  const username = document.getElementById('username').value;
-  const password = document.getElementById('password').value;
-  const res = await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({username,password})});
+confirmLogin.addEventListener('click', async ()=>{
+  const username=document.getElementById('username').value;
+  const password=document.getElementById('password').value;
+  const res = await fetch('/api/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username, password })
+  });
   const data = await res.json();
   if(data.success){
     token = data.token;
-    localStorage.setItem('token', token);
     isAdmin = true;
     loginModal.classList.add('hidden');
-    renderLevelsView();
-  } else {
-    loginError.textContent = data.message;
-    loginError.classList.remove('hidden');
-  }
+    fetchLevels();
+  } else alert('Invalid credentials');
 });
 
 /* ---------- Leaderboard ---------- */
-function renderLeaderboardView(){
+function renderLeaderboardView(container, levelsArr){
   container.innerHTML='';
   const players={};
-  levels.forEach(level=>{
+  levelsArr.forEach(level=>{
     const pts = pointercratePoints(level.rank);
     level.recordHolders.forEach(rec=>{
       const name = rec.name||'Unknown';
@@ -210,14 +208,14 @@ function renderLeaderboardView(){
       players[name].records.push({rank:level.rank,title:level.title,percent});
     });
   });
+
   const list = Object.values(players).sort((a,b)=>b.points-a.points);
-  const div = document.createElement('div'); div.className='space-y-4';
-  const header = document.createElement('div'); header.className='flex items-center justify-between text-zinc-400';
-  header.innerHTML='<div class="text-lg font-semibold">Leaderboard</div>';
-  div.appendChild(header);
-  if(list.length===0){
-    const p=document.createElement('p'); p.className='text-zinc-500'; p.textContent='No players with records yet.'; div.appendChild(p);
-  } else {
+  const div=document.createElement('div'); div.className='space-y-4';
+  const header=document.createElement('div'); header.className='flex items-center justify-between text-zinc-400';
+  header.innerHTML='<div class="text-lg font-semibold">Leaderboard</div>'; div.appendChild(header);
+
+  if(list.length===0){ const p=document.createElement('p'); p.className='text-zinc-500'; p.textContent='No players with records yet.'; div.appendChild(p);}
+  else{
     const table=document.createElement('div'); table.className='bg-zinc-800 p-3 rounded-2xl shadow-lg';
     table.innerHTML=`<div class="hidden md:flex text-xs text-zinc-400 uppercase tracking-wide mb-2 px-2"><div class="w-12">Rank</div><div class="flex-1">Player</div><div class="w-28 text-right">Points</div></div>`;
     list.forEach((p,i)=>{
@@ -225,38 +223,15 @@ function renderLeaderboardView(){
       row.innerHTML=`<div class="flex items-center justify-between gap-4"><div class="flex items-center gap-3"><div class="w-12 text-xl font-bold text-zinc-100">${i+1}</div><div><div class="text-lg font-semibold text-zinc-100 player-name hover:text-indigo-400 transition">${escapeHtml(p.name)}</div></div></div><div class="text-right text-zinc-100 font-semibold">${p.points.toFixed(2)}</div></div>`;
       div.appendChild(row);
     });
-    div.appendChild(table);
   }
   container.appendChild(div);
 }
 
-/* ---------- View Toggle ---------- */
-async function init(){
-  await loadLevels();
-  showLevelsView();
-}
-function showLevelsView(){ currentView='levels'; viewToggle.textContent='View Leaderboard'; renderLevelsView();}
-function showLeaderboardView(){ currentView='leaderboard'; viewToggle.textContent='View Levels'; renderLeaderboardView();}
+/* ---------- Toggle Views ---------- */
+let currentView='levels';
+function showLevelsView(){ currentView='levels'; viewToggle.textContent='View Leaderboard'; fetchLevels();}
+function showLeaderboardView(){ currentView='leaderboard'; viewToggle.textContent='View Levels'; renderLeaderboardView(container, levels);}
 viewToggle.addEventListener('click',()=>currentView==='levels'?showLeaderboardView():showLevelsView());
 
-/* ---------- Confirm Modal ---------- */
-function openConfirmModal(message, callback){
-  const modal = document.createElement('div');
-  modal.className='fixed inset-0 bg-black/50 flex items-center justify-center';
-  modal.innerHTML=`<div class="bg-zinc-800 p-6 rounded-2xl w-80">
-    <p class="text-zinc-100 mb-4">${message}</p>
-    <div class="flex justify-end gap-2">
-      <button class="px-3 py-1 rounded bg-zinc-600 hover:bg-zinc-500 text-zinc-100 cancelBtn">Cancel</button>
-      <button class="px-3 py-1 rounded bg-red-600 hover:bg-red-500 text-white confirmBtn">Confirm</button>
-    </div>
-  </div>`;
-  document.body.appendChild(modal);
-  modal.querySelector('.cancelBtn').addEventListener('click',()=>modal.remove());
-  modal.querySelector('.confirmBtn').addEventListener('click',()=>{
-    callback();
-    modal.remove();
-  });
-}
-
-/* ---------- Init ---------- */
-init();
+/* ---------- On Load ---------- */
+fetchLevels();
