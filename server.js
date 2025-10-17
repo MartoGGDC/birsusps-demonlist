@@ -12,7 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // JWT secret
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-this';
+const JWT_SECRET = process.env.JWT_SECRET || 'mySuperSecret123!';
 
 // File path
 const LEVELS_FILE = path.join(__dirname, 'levels.json');
