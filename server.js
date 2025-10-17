@@ -1,91 +1,123 @@
 import express from 'express';
 import fs from 'fs';
-import jwt from 'jsonwebtoken';
-import cors from 'cors';
 import path from 'path';
+import jwt from 'jsonwebtoken';
+import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_key'; // set in Render
+const PORT = process.env.PORT || 10000;
 
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+// JWT secret
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-this';
 
-const levelsFile = path.join(__dirname, 'levels.json');
+// File path
+const LEVELS_FILE = path.join(__dirname, 'levels.json');
 
-/* ---------- Auth ---------- */
+// Middleware
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve index.html for root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// --- Helper functions ---
+function readLevels() {
+  const data = fs.existsSync(LEVELS_FILE) ? fs.readFileSync(LEVELS_FILE) : '[]';
+  return JSON.parse(data);
+}
+
+function writeLevels(levels) {
+  fs.writeFileSync(LEVELS_FILE, JSON.stringify(levels, null, 2));
+}
+
+// --- API Routes ---
+// Get all levels
+app.get('/api/levels', (req, res) => {
+  const levels = readLevels();
+  res.json(levels);
+});
+
+// Login (fake username/password)
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   if (username === 'admin' && password === '1234') {
-    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '12h' });
-    res.json({ success: true, token });
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token });
   } else {
-    res.status(401).json({ success: false, message: 'Invalid credentials' });
+    res.status(401).json({ error: 'Invalid username/password' });
   }
 });
 
-function authMiddleware(req, res, next) {
-  const token = req.headers['authorization']?.split(' ')[1];
-  if (!token) return res.status(401).json({ success: false, message: 'No token' });
+// Middleware to verify JWT
+function verifyToken(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Missing token' });
   try {
-    jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
     next();
-  } catch {
-    res.status(401).json({ success: false, message: 'Invalid token' });
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid token' });
   }
 }
 
-/* ---------- Levels API ---------- */
-app.get('/api/levels', (req, res) => {
-  const data = JSON.parse(fs.readFileSync(levelsFile, 'utf8'));
-  res.json(data);
+// Update a level (edit)
+app.put('/api/levels/:rank', verifyToken, (req, res) => {
+  const levels = readLevels();
+  const rank = parseInt(req.params.rank);
+  const index = levels.findIndex(l => l.rank === rank);
+  if (index === -1) return res.status(404).json({ error: 'Level not found' });
+
+  const { newRank, title, creator, youtube, recordHolders } = req.body;
+
+  // Update level info
+  levels[index].title = title;
+  levels[index].creator = creator;
+  levels[index].youtube = youtube;
+  levels[index].recordHolders = recordHolders;
+
+  // Swap ranks if changed
+  if (newRank && newRank !== rank) {
+    const targetIndex = levels.findIndex(l => l.rank === newRank);
+    if (targetIndex !== -1) levels[targetIndex].rank = rank;
+    levels[index].rank = newRank;
+  }
+
+  // Sort and normalize ranks
+  levels.sort((a, b) => a.rank - b.rank);
+  levels.forEach((l, i) => l.rank = i + 1);
+
+  writeLevels(levels);
+  res.json(levels);
 });
 
-app.post('/api/levels', authMiddleware, (req, res) => {
-  const data = JSON.parse(fs.readFileSync(levelsFile, 'utf8'));
-  const newLevel = req.body;
-  newLevel.rank = data.length + 1;
-  data.push(newLevel);
-  fs.writeFileSync(levelsFile, JSON.stringify(data, null, 2));
+// Create new level
+app.post('/api/levels', verifyToken, (req, res) => {
+  const levels = readLevels();
+  const { title = 'New Level', creator = '', youtube = '', recordHolders = [] } = req.body;
+  const newLevel = { rank: levels.length + 1, title, creator, youtube, recordHolders };
+  levels.push(newLevel);
+  writeLevels(levels);
   res.json(newLevel);
 });
 
-app.put('/api/levels/:rank', authMiddleware, (req, res) => {
-  const data = JSON.parse(fs.readFileSync(levelsFile, 'utf8'));
+// Delete level
+app.delete('/api/levels/:rank', verifyToken, (req, res) => {
+  let levels = readLevels();
   const rank = parseInt(req.params.rank);
-  const index = data.findIndex(l => l.rank === rank);
-  if (index === -1) return res.status(404).json({ message: 'Level not found' });
-
-  const updated = req.body;
-
-  // Swap ranks if necessary
-  if (updated.rank && updated.rank !== rank) {
-    const swapIndex = data.findIndex(l => l.rank === updated.rank);
-    if (swapIndex !== -1) data[swapIndex].rank = rank;
-  }
-
-  data[index] = { ...data[index], ...updated };
-  data.sort((a,b) => a.rank - b.rank);
-  fs.writeFileSync(levelsFile, JSON.stringify(data, null, 2));
-  res.json(data[index]);
-});
-
-app.delete('/api/levels/:rank', authMiddleware, (req, res) => {
-  const data = JSON.parse(fs.readFileSync(levelsFile, 'utf8'));
-  const rank = parseInt(req.params.rank);
-  const index = data.findIndex(l => l.rank === rank);
-  if (index === -1) return res.status(404).json({ message: 'Level not found' });
-
-  data.splice(index, 1);
-  data.forEach((l,i)=>l.rank=i+1);
-  fs.writeFileSync(levelsFile, JSON.stringify(data, null, 2));
+  levels = levels.filter(l => l.rank !== rank);
+  // Reassign ranks
+  levels.sort((a, b) => a.rank - b.rank);
+  levels.forEach((l, i) => l.rank = i + 1);
+  writeLevels(levels);
   res.json({ success: true });
 });
 
-/* ---------- Start Server ---------- */
+// Start server
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
