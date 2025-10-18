@@ -16,44 +16,93 @@ function escapeHtml(str) {
 
 /* ---------- API ---------- */
 async function fetchLevels() {
-  const res = await fetch("/api/levels");
-  levels = await res.json();
-  renderLevelsView(document.getElementById("list"), levels);
+  try {
+    const res = await fetch("/api/levels");
+    if (!res.ok) throw new Error("Failed to fetch levels");
+    levels = await res.json();
+    renderLevelsView(document.getElementById("list"), levels);
+  } catch (err) {
+    console.error(err);
+    showPopup("Failed to load levels", true);
+  }
 }
 
 async function saveLevel(level) {
-  const res = await fetch("/api/levels/update", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(level),
-  });
-  if (res.ok) await fetchLevels();
+  try {
+    const payload = { ...level };
+    if (typeof level.originalRank === "undefined") {
+      payload.originalRank = level.originalRankFallback ?? level.rank;
+    }
+
+    const res = await fetch("/api/levels/update", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to save level");
+    }
+
+    await fetchLevels();
+    showPopup("Level saved");
+  } catch (err) {
+    console.error(err);
+    showPopup(err.message || "Failed to save level", true);
+  }
 }
 
 async function deleteLevel(rank) {
-  const res = await fetch("/api/levels/delete", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ rank }),
-  });
-  if (res.ok) await fetchLevels();
+  try {
+    const res = await fetch("/api/levels/delete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ rank }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to delete level");
+    }
+    await fetchLevels();
+    showPopup("Level deleted");
+  } catch (err) {
+    console.error(err);
+    showPopup(err.message || "Failed to delete level", true);
+  }
 }
 
 async function createLevel() {
-  const res = await fetch("/api/levels/create", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (res.ok) await fetchLevels();
+  try {
+    const res = await fetch("/api/levels/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Failed to create level");
+    }
+    await fetchLevels();
+
+    // Auto-open modal for the newly created level
+    const newLevel = levels.find(
+      (l) => !l.title || l.title.trim() === "" || l.title === "-"
+    );
+    if (newLevel) openEditModal(newLevel);
+    else showPopup("New level created");
+  } catch (err) {
+    console.error(err);
+    showPopup(err.message || "Failed to create level", true);
+  }
 }
 
 /* ---------- Rendering ---------- */
@@ -109,11 +158,13 @@ function renderLevelsView(container, levelsArr) {
     }, index * 100);
 
     if (isAdmin) {
-      section.querySelector(".editBtn").addEventListener("click", (e) => {
+      const editBtn = section.querySelector(".editBtn");
+      const delBtn = section.querySelector(".deleteBtn");
+      editBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         openEditModal(level);
       });
-      section.querySelector(".deleteBtn").addEventListener("click", (e) => {
+      delBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         showConfirmPopup(
           `Delete level #${level.rank} - ${level.title}?`,
@@ -140,3 +191,119 @@ const cancelEdit = document.getElementById("cancelEdit");
 
 function openEditModal(level) {
   editingIndex = levels.findIndex((l) => l.rank === level.rank);
+  document.getElementById("editRank").value = level.rank;
+  document.getElementById("editTitle").value = level.title || "";
+  document.getElementById("editCreator").value = level.creator || "";
+  const ytEl = document.getElementById("editYoutube");
+  if (ytEl) ytEl.value = level.youtube || "";
+  editModal.dataset.originalRank = String(level.rank);
+  editModal.classList.remove("hidden");
+}
+
+cancelEdit.addEventListener("click", () => {
+  editModal.classList.add("hidden");
+  delete editModal.dataset.originalRank;
+});
+
+editForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const originalRank = parseInt(editModal.dataset.originalRank || "");
+  if (Number.isNaN(originalRank)) {
+    showPopup("Original rank not found", true);
+    return;
+  }
+
+  let newRank = parseInt(document.getElementById("editRank").value);
+  const title = document.getElementById("editTitle").value.trim();
+  const creator = document.getElementById("editCreator").value.trim();
+  const youtubeEl = document.getElementById("editYoutube");
+  const youtube = youtubeEl ? youtubeEl.value.trim() : "";
+
+  // Clamp the rank to valid range
+  const maxRank = levels.length;
+  if (Number.isNaN(newRank) || newRank < 1) newRank = 1;
+  if (newRank > maxRank) newRank = maxRank;
+
+  const updated = {
+    originalRank,
+    rank: newRank,
+    title,
+    creator,
+    youtube,
+  };
+
+  await saveLevel(updated);
+
+  editModal.classList.add("hidden");
+  delete editModal.dataset.originalRank;
+});
+
+/* ---------- Login ---------- */
+const loginBtn = document.getElementById("loginBtn");
+const loginModal = document.getElementById("loginModal");
+const cancelLogin = document.getElementById("cancelLogin");
+const confirmLogin = document.getElementById("confirmLogin");
+
+loginBtn.addEventListener("click", () => loginModal.classList.remove("hidden"));
+cancelLogin.addEventListener("click", () => loginModal.classList.add("hidden"));
+
+confirmLogin.addEventListener("click", async () => {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      showPopup("Invalid login", true);
+      return;
+    }
+    const data = await res.json();
+    token = data.token;
+    localStorage.setItem("jwt", token);
+    isAdmin = true;
+    loginModal.classList.add("hidden");
+    showPopup("Logged in");
+    await fetchLevels();
+  } catch (err) {
+    console.error(err);
+    showPopup("Login failed", true);
+  }
+});
+
+/* ---------- Popups ---------- */
+function showPopup(msg, isError = false) {
+  const popup = document.createElement("div");
+  popup.className = `fixed bottom-5 right-5 px-4 py-2 rounded text-white ${
+    isError ? "bg-red-600" : "bg-green-600"
+  } shadow-lg`;
+  popup.textContent = msg;
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 3000);
+}
+
+function showConfirmPopup(msg, onConfirm) {
+  const div = document.createElement("div");
+  div.className =
+    "fixed inset-0 bg-black/50 flex items-center justify-center z-50";
+  div.innerHTML = `
+    <div class="bg-zinc-800 p-6 rounded-2xl w-80 text-center">
+      <p class="mb-4 text-zinc-100">${msg}</p>
+      <div class="flex justify-center gap-3">
+        <button class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-500" id="confirmYes">Yes</button>
+        <button class="px-3 py-1 bg-zinc-600 text-white rounded hover:bg-zinc-500" id="confirmNo">No</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  div.querySelector("#confirmYes").onclick = () => {
+    div.remove();
+    onConfirm();
+  };
+  div.querySelector("#confirmNo").onclick = () => div.remove();
+}
+
+/* ---------- Init ---------- */
+fetchLevels();
