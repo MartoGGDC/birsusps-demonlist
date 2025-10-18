@@ -39,6 +39,10 @@ async function saveLevel(level) {
     body: JSON.stringify(level),
   });
   if (res.ok) await fetchLevels();
+  else {
+    const err = await res.json();
+    showPopup(err.message || "Error saving level", true);
+  }
 }
 
 async function deleteLevel(rank) {
@@ -194,22 +198,29 @@ cancelEdit.addEventListener("click", () => editModal.classList.add("hidden"));
 
 editForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+
+  const originalRank = levels[editingIndex]?.rank; // ✅ track original
+  const newRank = parseInt(document.getElementById("editRank").value);
+
   const lvl = {
-    rank: parseInt(document.getElementById("editRank").value),
+    originalRank, // ✅ backend needs this for swapping
+    rank: newRank,
     title: document.getElementById("editTitle").value,
     creator: document.getElementById("editCreator").value,
     recordHolders: document
       .getElementById("editRecords")
       .value.split(",")
+      .filter((s) => s.trim())
       .map((s) => {
         const parts = s.split("-");
         return {
-          name: parts[0].trim(),
+          name: parts[0]?.trim() || "",
           percent: parts[1]?.trim() || "0%",
           verified: parts[2]?.trim().toLowerCase() === "true",
         };
       }),
   };
+
   editModal.classList.add("hidden");
   await saveLevel(lvl);
 });
