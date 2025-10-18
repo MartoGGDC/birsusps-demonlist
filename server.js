@@ -2,103 +2,125 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import jwt from "jsonwebtoken";
-import bodyParser from "body-parser";
+import dotenv from "dotenv";
+import cors from "cors";
+
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || "mySuperSecret123!"; // Make sure this matches your Render secret!
 
-// JWT secret from Render environment variable
-const JWT_SECRET = process.env.JWT_SECRET || "mySuperSecret123!";
+const __dirname = path.resolve();
+const LEVELS_PATH = path.join(__dirname, "levels.json");
 
 // Middleware
-app.use(bodyParser.json());
+app.use(express.json());
+app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Helper to read/write levels.json
-const levelsPath = path.join(__dirname, "levels.json");
-
-function readLevels() {
-  if (!fs.existsSync(levelsPath)) return [];
-  const data = fs.readFileSync(levelsPath, "utf-8");
-  return JSON.parse(data);
+/* ------------------ Utility ------------------ */
+function loadLevels() {
+  try {
+    const data = fs.readFileSync(LEVELS_PATH, "utf8");
+    return JSON.parse(data);
+  } catch (err) {
+    console.error("Error reading levels.json:", err);
+    return [];
+  }
 }
 
-function writeLevels(levels) {
-  fs.writeFileSync(levelsPath, JSON.stringify(levels, null, 2), "utf-8");
+function saveLevels(levels) {
+  fs.writeFileSync(LEVELS_PATH, JSON.stringify(levels, null, 2), "utf8");
 }
 
-// ---------- Routes ---------- //
+/* ------------------ Authentication ------------------ */
+app.post("/api/login", (req, res) => {
+  const { username, password } = req.body;
+  const adminUser = process.env.ADMIN_USER || "admin";
+  const adminPass = process.env.ADMIN_PASS || "password123";
 
-// Get all levels
+  if (username === adminUser && password === adminPass) {
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "1d" });
+    return res.json({ token });
+  } else {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+});
+
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader)
+    return res.status(403).json({ message: "No authorization header" });
+
+  const token = authHeader.split(" ")[1];
+  if (!token) return res.status(403).json({ message: "Missing token" });
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: "Invalid token" });
+    req.user = user;
+    next();
+  });
+}
+
+/* ------------------ API Endpoints ------------------ */
+
+// Get all levels (public)
 app.get("/api/levels", (req, res) => {
-  const levels = readLevels();
+  const levels = loadLevels();
   res.json(levels);
 });
 
-// Update a level (requires login)
-app.post("/api/levels/update", (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
+// Update a level (admin only)
+app.post("/api/levels/update", verifyToken, (req, res) => {
+  const updated = req.body;
+  if (!updated || typeof updated.rank !== "number")
+    return res.status(400).json({ message: "Invalid data" });
 
-  try {
-    jwt.verify(token, JWT_SECRET);
-  } catch (err) {
-    return res.status(401).json({ error: "Invalid token" });
+  let levels = loadLevels();
+  const idx = levels.findIndex((lvl) => lvl.rank === updated.rank);
+  if (idx === -1) {
+    return res.status(404).json({ message: "Level not found" });
   }
-
-  const { rank, title, creator, youtube, recordHolders } = req.body;
-  let levels = readLevels();
-
-  const index = levels.findIndex((l) => l.rank === rank);
-  if (index !== -1) {
-    levels[index] = { ...levels[index], title, creator, youtube, recordHolders };
-  } else {
-    levels.push({ rank, title, creator, youtube, recordHolders });
-  }
-
-  // Sort levels by rank
-  levels.sort((a, b) => a.rank - b.rank);
-  writeLevels(levels);
-  res.json({ success: true });
+  levels[idx] = { ...levels[idx], ...updated };
+  saveLevels(levels);
+  res.json({ message: "Level updated", levels });
 });
 
-// Delete a level (requires login)
-app.post("/api/levels/delete", (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-
-  try {
-    jwt.verify(token, JWT_SECRET);
-  } catch (err) {
-    return res.status(401).json({ error: "Invalid token" });
-  }
-
+// Delete a level (admin only)
+app.post("/api/levels/delete", verifyToken, (req, res) => {
   const { rank } = req.body;
-  let levels = readLevels();
-  levels = levels.filter((l) => l.rank !== rank);
+  if (typeof rank !== "number")
+    return res.status(400).json({ message: "Invalid rank" });
 
-  // Reassign ranks
-  levels.sort((a, b) => a.rank - b.rank);
-  levels.forEach((l, i) => (l.rank = i + 1));
-
-  writeLevels(levels);
-  res.json({ success: true });
+  let levels = loadLevels();
+  levels = levels.filter((lvl) => lvl.rank !== rank);
+  saveLevels(levels);
+  res.json({ message: "Level deleted", levels });
 });
 
-// Login route
-app.post("/api/login", (req, res) => {
-  const { username, password } = req.body;
-  // Hardcoded for now, can later expand to DB
-  if (username === "admin" && password === "1234") {
-    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: "8h" });
-    return res.json({ token });
-  }
-  res.status(401).json({ error: "Invalid credentials" });
+// Create a new level (admin only)
+app.post("/api/levels/create", verifyToken, (req, res) => {
+  let levels = loadLevels();
+  const maxRank = levels.reduce((max, l) => Math.max(max, l.rank), 0);
+  const newLevel = {
+    rank: maxRank + 1,
+    title: "Untitled Level",
+    creator: "Unknown",
+    youtube: "",
+    recordHolders: [],
+  };
+  levels.push(newLevel);
+  saveLevels(levels);
+  res.json({ message: "Level created", level: newLevel });
 });
 
-// Fallback to serve index.html for all other routes
+/* ------------------ Fallback to index.html ------------------ */
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+/* ------------------ Start Server ------------------ */
+app.listen(PORT, () =>
+  console.log(`✅ Server running on http://localhost:${PORT}`)
+);
